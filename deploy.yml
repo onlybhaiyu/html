@@ -1,0 +1,30 @@
+
+name: Deploy Nginx Website
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download code
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/nginx_cicd
+          chmod 600 ~/.ssh/nginx_cicd
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy website to EC2
+        run: |
+          scp -i ~/.ssh/nginx_cicd index.html \
+            "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/tmp/index.html"
+          ssh -i ~/.ssh/nginx_cicd \
+            "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" \
+            "sudo cp /tmp/index.html /usr/share/nginx/html/index.html"
